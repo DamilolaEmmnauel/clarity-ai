@@ -90,12 +90,27 @@ export async function POST(request: Request) {
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
-    start(controller) {
-      messageStream.on('text', (text: string) => {
-        controller.enqueue(encoder.encode(text));
-      });
-      messageStream.on('error', (err: Error) => controller.error(err));
-      messageStream.on('end', () => controller.close());
+    async start(controller) {
+      try {
+        for await (const event of messageStream) {
+          if (
+            event.type === 'content_block_delta' &&
+            event.delta.type === 'text_delta'
+          ) {
+            controller.enqueue(encoder.encode(event.delta.text));
+          }
+        }
+        controller.close();
+      } catch (err: unknown) {
+        // Surface the error as a chat message rather than a 502
+        try {
+          const msg = err instanceof Error ? err.message : 'Unknown error';
+          controller.enqueue(encoder.encode(`<p>⚠️ ${msg}</p>`));
+          controller.close();
+        } catch {
+          controller.error(err as Error);
+        }
+      }
     },
     cancel() {
       messageStream.abort();
