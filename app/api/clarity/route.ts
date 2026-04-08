@@ -18,6 +18,7 @@ export async function GET(request: Request) {
   );
   if (page) url.searchParams.set('pageFilter', page);
   if (numOfDays) url.searchParams.set('numOfDays', numOfDays);
+  url.searchParams.set('projectId', projectId);
 
   let response: Response;
   try {

@@ -30,7 +30,7 @@ export default function Sidebar({
       ? 'Checking connection…'
       : clarityConnected
       ? 'Clarity connected'
-      : 'Token not configured';
+      : 'Clarity API error';
 
   return (
     <aside className="sidebar">

@@ -68,7 +68,7 @@ export default function ChatApp() {
       gsap.from('.sidebar',         { x: -20, opacity: 0, duration: 0.5, ease: 'power2.out' });
       gsap.from('.topbar',          { y: -10, opacity: 0, duration: 0.4, delay: 0.1, ease: 'power2.out' });
       gsap.from('.welcome',         { y: 20,  opacity: 0, duration: 0.6, delay: 0.2, ease: 'power2.out' });
-      gsap.from('.suggestion-chip', { y: 12,  opacity: 0, stagger: 0.08, duration: 0.4, delay: 0.35, ease: 'power2.out' });
+      // suggestion-chip entrance handled by CSS to avoid async GSAP timing issues
       gsap.from('.input-area',      { y: 10,  opacity: 0, duration: 0.4, delay: 0.15, ease: 'power2.out' });
     });
   }, []);
