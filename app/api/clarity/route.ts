@@ -14,11 +14,10 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(
-    `https://www.clarity.ms/export-data/api/v1/${projectId}/live-insights`
+    'https://www.clarity.ms/export-data/api/v1/project-live-insights'
   );
   if (page) url.searchParams.set('pageFilter', page);
   if (numOfDays) url.searchParams.set('numOfDays', numOfDays);
-  url.searchParams.set('projectId', projectId);
 
   let response: Response;
   try {
