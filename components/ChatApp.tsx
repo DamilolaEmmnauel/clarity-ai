@@ -36,6 +36,7 @@ export default function ChatApp() {
   const [pageFilter, setPageFilter] = useState('');
   const [showWelcome, setShowWelcome] = useState(true);
   const [clarityConnected, setClarityConnected] = useState<boolean | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesWrapRef = useRef<HTMLDivElement>(null);
@@ -189,6 +190,7 @@ export default function ChatApp() {
     setShowWelcome(true);
     setStreamingContent('');
     setIsStreaming(false);
+    setSidebarOpen(false);
   };
 
   const handleLoadConvo = (id: string) => {
@@ -197,6 +199,7 @@ export default function ChatApp() {
     setCurrentConvoId(id);
     setMessages(convo.messages);
     setShowWelcome(false);
+    setSidebarOpen(false);
   };
 
   const handlePageFilter = () => {
@@ -231,19 +234,26 @@ export default function ChatApp() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
       <Sidebar
         conversations={conversations}
         currentConvoId={currentConvoId}
         clarityConnected={clarityConnected}
+        isOpen={sidebarOpen}
         onNewChat={handleNewChat}
         onLoadConvo={handleLoadConvo}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <main className="main">
         {/* TOP BAR */}
         <div className="topbar">
           <div className="topbar-left">
+            <button className="hamburger-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+            </button>
             <div className="topbar-title">Website Analytics Chat</div>
             <div className="topbar-badge">Powered by Clarity + Claude</div>
           </div>

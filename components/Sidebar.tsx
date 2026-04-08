@@ -7,16 +7,20 @@ interface SidebarProps {
   conversations: Conversation[];
   currentConvoId: string | null;
   clarityConnected: boolean | null;
+  isOpen: boolean;
   onNewChat: () => void;
   onLoadConvo: (id: string) => void;
+  onClose: () => void;
 }
 
 export default function Sidebar({
   conversations,
   currentConvoId,
   clarityConnected,
+  isOpen,
   onNewChat,
   onLoadConvo,
+  onClose,
 }: SidebarProps) {
   const dotClass =
     clarityConnected === null
@@ -33,7 +37,12 @@ export default function Sidebar({
       : 'Clarity API error';
 
   return (
-    <aside className="sidebar">
+    <>
+      <div
+        className={`sidebar-overlay${isOpen ? ' visible' : ''}`}
+        onClick={onClose}
+      />
+    <aside className={`sidebar${isOpen ? ' sidebar-open' : ''}`}>
       <div className="sidebar-header">
         <div className="logo">
           <div className="logo-icon">
@@ -87,5 +96,6 @@ export default function Sidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }
