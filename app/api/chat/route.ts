@@ -51,10 +51,10 @@ export async function POST(request: Request) {
   const token = process.env.CLARITY_API_TOKEN;
   const projectId = process.env.CLARITY_PROJECT_ID;
 
-  if (token && projectId) {
+  if (token) {
     try {
       const url = new URL(
-        `https://www.clarity.ms/export-data/api/v1/${projectId}/live-insights`
+        'https://www.clarity.ms/export-data/api/v1/project-live-insights'
       );
       if (pageFilter) url.searchParams.set('pageFilter', pageFilter);
       url.searchParams.set('numOfDays', '3');
