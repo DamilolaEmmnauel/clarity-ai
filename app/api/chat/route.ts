@@ -2,6 +2,41 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// In-memory cache: keyed by pageFilter, expires after 1 hour
+const clarityCache = new Map<string, { data: unknown; fetchedAt: number }>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+async function fetchClarityData(token: string, pageFilter: string): Promise<{ data: unknown; error: string | null }> {
+  const cacheKey = pageFilter || '__all__';
+  const cached = clarityCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return { data: cached.data, error: null };
+  }
+
+  try {
+    const url = new URL('https://www.clarity.ms/export-data/api/v1/project-live-insights');
+    if (pageFilter) url.searchParams.set('pageFilter', pageFilter);
+    url.searchParams.set('numOfDays', '3');
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      clarityCache.set(cacheKey, { data, fetchedAt: Date.now() });
+      return { data, error: null };
+    } else if (res.status === 429) {
+      return { data: null, error: 'Clarity API daily limit exceeded — live data will be available again tomorrow.' };
+    } else {
+      return { data: null, error: `Clarity API error: ${res.status} ${res.statusText}` };
+    }
+  } catch (err) {
+    return { data: null, error: `Could not reach Clarity API: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
 function buildSystemPrompt(clarityData: unknown, pageFilter: string, projectId?: string, clarityError?: string | null): string {
   const dataStr = clarityData
     ? JSON.stringify(clarityData, null, 2)
@@ -54,34 +89,16 @@ interface HistoryMessage {
 export async function POST(request: Request) {
   const { message, pageFilter = '', history = [] } = await request.json();
 
-  // Fetch live Clarity data server-side (no token exposed to client)
-  let clarityData: unknown = null;
-  let clarityError: string | null = null;
   const token = process.env.CLARITY_API_TOKEN;
   const projectId = process.env.CLARITY_PROJECT_ID;
 
-  if (token) {
-    try {
-      const url = new URL(
-        'https://www.clarity.ms/export-data/api/v1/project-live-insights'
-      );
-      if (pageFilter) url.searchParams.set('pageFilter', pageFilter);
-      url.searchParams.set('numOfDays', '3');
+  let clarityData: unknown = null;
+  let clarityError: string | null = null;
 
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-      if (res.ok) {
-        clarityData = await res.json();
-      } else if (res.status === 429) {
-        clarityError = 'Clarity API daily limit exceeded — live data will be available again tomorrow.';
-      } else {
-        clarityError = `Clarity API error: ${res.status} ${res.statusText}`;
-      }
-    } catch (err) {
-      clarityError = `Could not reach Clarity API: ${err instanceof Error ? err.message : String(err)}`;
-    }
+  if (token) {
+    const result = await fetchClarityData(token, pageFilter);
+    clarityData = result.data;
+    clarityError = result.error;
   } else {
     clarityError = 'CLARITY_API_TOKEN not configured.';
   }
