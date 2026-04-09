@@ -2,10 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-function buildSystemPrompt(clarityData: unknown, pageFilter: string, projectId?: string): string {
+function buildSystemPrompt(clarityData: unknown, pageFilter: string, projectId?: string, clarityError?: string | null): string {
   const dataStr = clarityData
     ? JSON.stringify(clarityData, null, 2)
-    : 'No Clarity data available — CLARITY_API_TOKEN or CLARITY_PROJECT_ID may not be configured.';
+    : clarityError ?? 'No Clarity data available.';
 
   return `You are a website analytics assistant for Hire Overseas (hireoverseas.com), a platform that helps businesses hire global talent, especially virtual assistants.
 
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
 
   // Fetch live Clarity data server-side (no token exposed to client)
   let clarityData: unknown = null;
+  let clarityError: string | null = null;
   const token = process.env.CLARITY_API_TOKEN;
   const projectId = process.env.CLARITY_PROJECT_ID;
 
@@ -73,13 +74,19 @@ export async function POST(request: Request) {
       });
       if (res.ok) {
         clarityData = await res.json();
+      } else if (res.status === 429) {
+        clarityError = 'Clarity API daily limit exceeded — live data will be available again tomorrow.';
+      } else {
+        clarityError = `Clarity API error: ${res.status} ${res.statusText}`;
       }
-    } catch {
-      // Proceed without Clarity data — Claude will note it's unavailable
+    } catch (err) {
+      clarityError = `Could not reach Clarity API: ${err instanceof Error ? err.message : String(err)}`;
     }
+  } else {
+    clarityError = 'CLARITY_API_TOKEN not configured.';
   }
 
-  const systemPrompt = buildSystemPrompt(clarityData, pageFilter, projectId);
+  const systemPrompt = buildSystemPrompt(clarityData, pageFilter, projectId, clarityError);
 
   // Map our message history to Anthropic's format
   const anthropicHistory = (history as HistoryMessage[])
