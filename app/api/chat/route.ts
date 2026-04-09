@@ -2,12 +2,20 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-function buildSystemPrompt(clarityData: unknown, pageFilter: string): string {
+function buildSystemPrompt(clarityData: unknown, pageFilter: string, projectId?: string): string {
   const dataStr = clarityData
     ? JSON.stringify(clarityData, null, 2)
     : 'No Clarity data available — CLARITY_API_TOKEN or CLARITY_PROJECT_ID may not be configured.';
 
   return `You are a website analytics assistant for Hire Overseas (hireoverseas.com), a platform that helps businesses hire global talent, especially virtual assistants.
+
+${projectId ? `Your Microsoft Clarity project ID is: ${projectId}
+Clarity dashboard links:
+- Dashboard: https://clarity.microsoft.com/projects/view/${projectId}/dashboard
+- Recordings: https://clarity.microsoft.com/projects/view/${projectId}/recordings
+- Heatmaps: https://clarity.microsoft.com/projects/view/${projectId}/heatmaps
+- Dead Clicks: https://clarity.microsoft.com/projects/view/${projectId}/recordings?clickType=dead
+When asked for links, provide these exact URLs.` : ''}
 
 You have access to live Microsoft Clarity analytics data provided below. Use this data to answer questions accurately and specifically.
 
@@ -71,7 +79,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const systemPrompt = buildSystemPrompt(clarityData, pageFilter);
+  const systemPrompt = buildSystemPrompt(clarityData, pageFilter, projectId);
 
   // Map our message history to Anthropic's format
   const anthropicHistory = (history as HistoryMessage[])
